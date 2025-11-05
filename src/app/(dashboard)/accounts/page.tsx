@@ -1,7 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { getUserAccounts, deleteAccount } from '@/lib/accounts/actions'
+import { AccountFormDialog } from '@/components/accounts/account-form-dialog'
+import { AccountCard } from '@/components/accounts/account-card'
 
-export default function AccountsPage() {
+export default async function AccountsPage() {
+  const accounts = await getUserAccounts()
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -11,22 +15,30 @@ export default function AccountsPage() {
             Manage your connected bank accounts
           </p>
         </div>
-        <Button>Add Account</Button>
+        <AccountFormDialog />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>No accounts connected</CardTitle>
-          <CardDescription>
-            Add your first bank account to start tracking transactions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Connect your bank accounts to automatically import and categorize transactions
-          </p>
-        </CardContent>
-      </Card>
+      {accounts.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>No accounts connected</CardTitle>
+            <CardDescription>
+              Add your first bank account to start tracking transactions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Click the "Add Account" button above to get started
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {accounts.map((account) => (
+            <AccountCard key={account.id} account={account} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
