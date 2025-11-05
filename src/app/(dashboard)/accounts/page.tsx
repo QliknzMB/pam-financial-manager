@@ -1,10 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getUserAccounts, deleteAccount } from '@/lib/accounts/actions'
+import { getUserAccounts } from '@/lib/accounts/actions'
 import { AccountFormDialog } from '@/components/accounts/account-form-dialog'
 import { AccountCard } from '@/components/accounts/account-card'
 
 export default async function AccountsPage() {
-  const accounts = await getUserAccounts()
+  const accounts = await getUserAccounts() as any[]
 
   return (
     <div className="space-y-8">
@@ -28,7 +28,7 @@ export default async function AccountsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Click the "Add Account" button above to get started
+              Click the &ldquo;Add Account&rdquo; button above to get started
             </p>
           </CardContent>
         </Card>

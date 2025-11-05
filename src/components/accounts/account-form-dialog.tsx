@@ -33,10 +33,9 @@ interface AccountFormDialogProps {
   account?: {
     id: string
     name: string
-    type: string
+    account_type: string
     institution: string
-    currency: string
-    balance: number
+    current_balance: number
   }
   trigger?: React.ReactNode
 }
@@ -94,8 +93,8 @@ export function AccountFormDialog({ account, trigger }: AccountFormDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Account Type</Label>
-            <Select name="type" defaultValue={account?.type || 'checking'}>
+            <Label htmlFor="account_type">Account Type</Label>
+            <Select name="account_type" defaultValue={account?.account_type || 'checking'}>
               <SelectTrigger>
                 <SelectValue placeholder="Select account type" />
               </SelectTrigger>
@@ -103,12 +102,11 @@ export function AccountFormDialog({ account, trigger }: AccountFormDialogProps) 
                 <SelectItem value="checking">Checking/Everyday</SelectItem>
                 <SelectItem value="savings">Savings</SelectItem>
                 <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="investment">Investment</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="bucket">Bucket/Goal</SelectItem>
               </SelectContent>
             </Select>
-            {state.errors?.type && (
-              <p className="text-sm text-destructive">{state.errors.type[0]}</p>
+            {state.errors?.account_type && (
+              <p className="text-sm text-destructive">{state.errors.account_type[0]}</p>
             )}
           </div>
 
@@ -127,36 +125,17 @@ export function AccountFormDialog({ account, trigger }: AccountFormDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select name="currency" defaultValue={account?.currency || 'NZD'}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NZD">NZD (New Zealand Dollar)</SelectItem>
-                <SelectItem value="AUD">AUD (Australian Dollar)</SelectItem>
-                <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                <SelectItem value="GBP">GBP (British Pound)</SelectItem>
-              </SelectContent>
-            </Select>
-            {state.errors?.currency && (
-              <p className="text-sm text-destructive">{state.errors.currency[0]}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="balance">Current Balance (Optional)</Label>
+            <Label htmlFor="current_balance">Current Balance (Optional)</Label>
             <Input
-              id="balance"
-              name="balance"
+              id="current_balance"
+              name="current_balance"
               type="number"
               step="0.01"
               placeholder="0.00"
-              defaultValue={account?.balance}
+              defaultValue={account?.current_balance}
             />
-            {state.errors?.balance && (
-              <p className="text-sm text-destructive">{state.errors.balance[0]}</p>
+            {state.errors?.current_balance && (
+              <p className="text-sm text-destructive">{state.errors.current_balance[0]}</p>
             )}
             <p className="text-xs text-muted-foreground">
               This will be updated automatically as you import transactions

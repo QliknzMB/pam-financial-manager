@@ -17,12 +17,13 @@ export async function getUserTransactions(limit = 100) {
     .from('transactions')
     .select(`
       *,
-      accounts (
+      accounts!inner (
+        user_id,
         name,
         institution
       )
     `)
-    .eq('user_id', user.id)
+    .eq('accounts.user_id', user.id)
     .order('date', { ascending: false })
     .limit(limit)
 
@@ -48,14 +49,24 @@ export async function updateTransactionCategory(
     throw new Error('Not authenticated')
   }
 
-  const { error } = await supabase
+  // Verify the transaction belongs to the user through the account
+  const { data: transaction } = await supabase
+    .from('transactions')
+    .select('account_id, accounts!inner(user_id)')
+    .eq('id', transactionId)
+    .single()
+
+  if (!transaction || (transaction as any).accounts.user_id !== user.id) {
+    throw new Error('Transaction not found')
+  }
+
+  const { error } = await (supabase as any)
     .from('transactions')
     .update({
       category_id: categoryId,
-      status: categoryId ? 'categorized' : 'pending',
+      needs_review: !categoryId,
     })
     .eq('id', transactionId)
-    .eq('user_id', user.id)
 
   if (error) {
     throw new Error(error.message)

@@ -11,10 +11,9 @@ interface AccountCardProps {
   account: {
     id: string
     name: string
-    type: string
+    account_type: string
     institution: string
-    currency: string
-    balance: number
+    current_balance: number
     created_at?: string
   }
 }
@@ -23,8 +22,7 @@ const accountTypeLabels: Record<string, string> = {
   checking: 'Checking/Everyday',
   savings: 'Savings',
   credit_card: 'Credit Card',
-  investment: 'Investment',
-  other: 'Other',
+  bucket: 'Bucket/Goal',
 }
 
 export function AccountCard({ account }: AccountCardProps) {
@@ -53,10 +51,10 @@ export function AccountCard({ account }: AccountCardProps) {
     })
   }
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NZ', {
       style: 'currency',
-      currency: currency || 'NZD',
+      currency: 'NZD',
     }).format(amount)
   }
 
@@ -69,7 +67,7 @@ export function AccountCard({ account }: AccountCardProps) {
         </div>
         <div className="rounded-md bg-secondary px-2 py-1">
           <span className="text-xs font-medium">
-            {accountTypeLabels[account.type] || account.type}
+            {accountTypeLabels[account.account_type] || account.account_type}
           </span>
         </div>
       </CardHeader>
@@ -77,7 +75,7 @@ export function AccountCard({ account }: AccountCardProps) {
         <div className="space-y-4">
           <div>
             <p className="text-2xl font-bold">
-              {formatCurrency(account.balance, account.currency)}
+              {formatCurrency(account.current_balance)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Current Balance</p>
           </div>

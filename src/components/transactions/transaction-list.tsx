@@ -8,11 +8,10 @@ import { format } from 'date-fns'
 interface Transaction {
   id: string
   date: string
-  description: string
+  payee: string
   amount: number
-  balance?: number
-  type: 'debit' | 'credit'
-  status: string
+  transaction_type?: string
+  needs_review: boolean
   accounts?: {
     name: string
     institution: string
@@ -27,7 +26,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredTransactions = transactions.filter((transaction) =>
-    transaction.description.toLowerCase().includes(searchQuery.toLowerCase())
+    transaction.payee.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const formatCurrency = (amount: number) => {
@@ -73,8 +72,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{transaction.description}</p>
-                      {transaction.status === 'pending' && (
+                      <p className="font-medium truncate">{transaction.payee}</p>
+                      {transaction.needs_review && (
                         <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
                           Uncategorized
                         </span>
@@ -105,11 +104,6 @@ export function TransactionList({ transactions }: TransactionListProps) {
                       {transaction.amount >= 0 ? '+' : '-'}
                       {formatCurrency(transaction.amount)}
                     </p>
-                    {transaction.balance !== undefined && transaction.balance !== null && (
-                      <p className="text-sm text-muted-foreground">
-                        Bal: {formatCurrency(transaction.balance)}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}

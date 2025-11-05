@@ -55,14 +55,12 @@ export async function POST(request: NextRequest) {
 
     // Prepare transactions for database
     const transactionsToInsert = parseResult.transactions.map((transaction) => ({
-      user_id: user.id,
       account_id: accountId,
       date: transaction.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-      description: transaction.description,
+      payee: transaction.description,
       amount: transaction.amount,
-      balance: transaction.balance || null,
-      type: transaction.amount >= 0 ? 'credit' : 'debit',
-      status: 'pending', // Will be categorized later
+      transaction_type: transaction.type || (transaction.amount >= 0 ? 'credit' : 'debit'),
+      needs_review: true, // Will be categorized later
       particulars: transaction.particulars || null,
       reference: transaction.reference || null,
       code: transaction.code || null,
@@ -71,8 +69,8 @@ export async function POST(request: NextRequest) {
     // Insert transactions (using upsert to avoid duplicates)
     const { data: inserted, error: insertError } = await supabase
       .from('transactions')
-      .upsert(transactionsToInsert, {
-        onConflict: 'user_id,account_id,date,description,amount',
+      .upsert(transactionsToInsert as any, {
+        onConflict: 'account_id,date,payee,amount',
         ignoreDuplicates: true,
       })
       .select()
@@ -94,9 +92,9 @@ export async function POST(request: NextRequest) {
       .sort((a, b) => b.date.getTime() - a.date.getTime())[0]
 
     if (latestTransaction?.balance !== undefined) {
-      await supabase
+      await (supabase as any)
         .from('accounts')
-        .update({ balance: latestTransaction.balance })
+        .update({ current_balance: latestTransaction.balance })
         .eq('id', accountId)
     }
 

@@ -4,12 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-export const AccountSchema = z.object({
+const AccountSchema = z.object({
   name: z.string().min(2, 'Account name must be at least 2 characters'),
-  type: z.enum(['checking', 'savings', 'credit_card', 'investment', 'other']),
+  account_type: z.enum(['checking', 'savings', 'credit_card', 'bucket']),
   institution: z.string().min(1, 'Bank/institution is required'),
-  currency: z.string().default('NZD'),
-  balance: z.number().optional(),
+  current_balance: z.number().optional(),
 })
 
 export type AccountFormState = {
@@ -17,10 +16,9 @@ export type AccountFormState = {
   success: boolean
   errors?: {
     name?: string[]
-    type?: string[]
+    account_type?: string[]
     institution?: string[]
-    currency?: string[]
-    balance?: string[]
+    current_balance?: string[]
   }
 }
 
@@ -46,10 +44,9 @@ export async function createAccount(
   // Validate form data
   const validatedFields = AccountSchema.safeParse({
     name: formData.get('name'),
-    type: formData.get('type'),
+    account_type: formData.get('account_type'),
     institution: formData.get('institution'),
-    currency: formData.get('currency') || 'NZD',
-    balance: formData.get('balance') ? parseFloat(formData.get('balance') as string) : 0,
+    current_balance: formData.get('current_balance') ? parseFloat(formData.get('current_balance') as string) : 0,
   })
 
   if (!validatedFields.success) {
@@ -60,17 +57,16 @@ export async function createAccount(
     }
   }
 
-  const { name, type, institution, currency, balance } = validatedFields.data
+  const { name, account_type, institution, current_balance } = validatedFields.data
 
   // Insert account
-  const { error } = await supabase.from('accounts').insert({
+  const { error } = await supabase.from('accounts').insert([{
     user_id: user.id,
     name,
-    type,
+    account_type,
     institution,
-    currency,
-    balance: balance || 0,
-  })
+    current_balance: current_balance || 0,
+  }] as any)
 
   if (error) {
     return {
@@ -110,10 +106,9 @@ export async function updateAccount(
   // Validate form data
   const validatedFields = AccountSchema.safeParse({
     name: formData.get('name'),
-    type: formData.get('type'),
+    account_type: formData.get('account_type'),
     institution: formData.get('institution'),
-    currency: formData.get('currency') || 'NZD',
-    balance: formData.get('balance') ? parseFloat(formData.get('balance') as string) : 0,
+    current_balance: formData.get('current_balance') ? parseFloat(formData.get('current_balance') as string) : 0,
   })
 
   if (!validatedFields.success) {
@@ -124,17 +119,16 @@ export async function updateAccount(
     }
   }
 
-  const { name, type, institution, currency, balance } = validatedFields.data
+  const { name, account_type, institution, current_balance } = validatedFields.data
 
   // Update account
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('accounts')
     .update({
       name,
-      type,
+      account_type,
       institution,
-      currency,
-      balance,
+      current_balance,
     })
     .eq('id', accountId)
     .eq('user_id', user.id)
