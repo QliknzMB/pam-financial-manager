@@ -1,12 +1,42 @@
 const express = require('express');
 const { exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const app = express();
-const PORT = 3030;
 
+// Load configuration
+const configPath = path.join(__dirname, 'config.json');
+let config = {
+  projectName: 'Dev Panel',
+  projectIcon: '🚀',
+  devPanelPort: 3030,
+  devServerPort: 3000,
+  devServerCommand: 'npm run dev',
+  commands: {},
+  quickLinks: [],
+  theme: {
+    primaryColor: '#667eea',
+    secondaryColor: '#764ba2'
+  }
+};
+
+try {
+  const configData = fs.readFileSync(configPath, 'utf8');
+  config = { ...config, ...JSON.parse(configData) };
+} catch (error) {
+  console.warn('⚠️  No config.json found, using defaults');
+}
+
+const PORT = config.devPanelPort;
 let devServerProcess = null;
 
 app.use(express.static(__dirname));
+app.use(express.json());
+
+// Get configuration
+app.get('/api/config', (req, res) => {
+  res.json(config);
+});
 
 // Helper to run commands
 function runCommand(command, res) {
@@ -27,20 +57,16 @@ function runCommand(command, res) {
   });
 }
 
-// Git Pull
-app.get('/api/git-pull', (req, res) => {
-  runCommand('git pull', res);
+// Generic command runner
+app.post('/api/run-command', (req, res) => {
+  const { command } = req.body;
+  if (!command) {
+    res.json({ success: false, output: 'No command provided' });
+    return;
+  }
+  runCommand(command, res);
 });
 
-// Git Status
-app.get('/api/git-status', (req, res) => {
-  runCommand('git status', res);
-});
-
-// NPM Install
-app.get('/api/npm-install', (req, res) => {
-  runCommand('npm install', res);
-});
 
 // Start Dev Server
 app.get('/api/start-dev', (req, res) => {
@@ -52,7 +78,7 @@ app.get('/api/start-dev', (req, res) => {
     return;
   }
 
-  devServerProcess = exec('npm run dev', { cwd: path.join(__dirname, '..') });
+  devServerProcess = exec(config.devServerCommand, { cwd: path.join(__dirname, '..') });
 
   let output = '';
   devServerProcess.stdout.on('data', (data) => {
@@ -66,8 +92,8 @@ app.get('/api/start-dev', (req, res) => {
   setTimeout(() => {
     res.json({
       success: true,
-      output: 'Dev server starting on http://localhost:4000\n' + output,
-      command: 'npm run dev'
+      output: `Dev server starting on http://localhost:${config.devServerPort}\n` + output,
+      command: config.devServerCommand
     });
   }, 2000);
 });
@@ -91,21 +117,12 @@ app.get('/api/stop-dev', (req, res) => {
   });
 });
 
-// Build
-app.get('/api/build', (req, res) => {
-  runCommand('npm run build', res);
-});
-
-// Lint
-app.get('/api/lint', (req, res) => {
-  runCommand('npm run lint', res);
-});
 
 // Check Server Status
 app.get('/api/server-status', (req, res) => {
   res.json({
     running: devServerProcess !== null,
-    port: 4000
+    port: config.devServerPort
   });
 });
 

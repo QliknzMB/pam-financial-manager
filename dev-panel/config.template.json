@@ -1,0 +1,62 @@
+{
+  "projectName": "My Project",
+  "projectIcon": "🚀",
+  "devPanelPort": 3030,
+  "devServerPort": 3000,
+  "devServerCommand": "npm run dev",
+  "commands": {
+    "gitPull": {
+      "label": "Git Pull",
+      "icon": "📥",
+      "command": "git pull",
+      "color": "primary"
+    },
+    "gitStatus": {
+      "label": "Git Status",
+      "icon": "📊",
+      "command": "git status",
+      "color": "info"
+    },
+    "npmInstall": {
+      "label": "NPM Install",
+      "icon": "📦",
+      "command": "npm install",
+      "color": "secondary"
+    },
+    "startDev": {
+      "label": "Start Dev Server",
+      "icon": "▶️",
+      "special": "start-dev",
+      "color": "success"
+    },
+    "stopDev": {
+      "label": "Stop Dev Server",
+      "icon": "⏹️",
+      "special": "stop-dev",
+      "color": "danger"
+    },
+    "build": {
+      "label": "Build",
+      "icon": "🔨",
+      "command": "npm run build",
+      "color": "secondary"
+    },
+    "lint": {
+      "label": "Lint",
+      "icon": "🔍",
+      "command": "npm run lint",
+      "color": "info"
+    }
+  },
+  "quickLinks": [
+    {
+      "label": "Open App",
+      "icon": "🌐",
+      "url": "http://localhost:3000"
+    }
+  ],
+  "theme": {
+    "primaryColor": "#667eea",
+    "secondaryColor": "#764ba2"
+  }
+}

@@ -13,7 +13,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
       min-height: 100vh;
       padding: 20px;
     }
@@ -116,7 +116,7 @@
     }
 
     .btn-primary {
-      background: #667eea;
+      background: var(--primary-color, #667eea);
       color: white;
     }
 
@@ -208,18 +208,29 @@
     }
 
     .quick-link:hover {
-      background: #667eea;
+      background: var(--primary-color, #667eea);
       color: white;
       transform: translateY(-1px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .quick-link {
+      text-decoration: none;
+      color: var(--primary-color, #667eea);
+      font-weight: 600;
+      padding: 8px 15px;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🏃‍♀️💰 PAM Dev Panel</h1>
-      <p>Development Control Center</p>
+      <h1 id="projectTitle">🚀 Dev Panel</h1>
+      <p id="projectSubtitle">Development Control Center</p>
     </div>
 
     <div class="panel">
@@ -233,44 +244,119 @@
         </button>
       </div>
 
-      <div class="controls">
-        <button class="btn btn-primary" onclick="runCommand('git-pull')">
-          📥 Git Pull
-        </button>
-        <button class="btn btn-info" onclick="runCommand('git-status')">
-          📊 Git Status
-        </button>
-        <button class="btn btn-secondary" onclick="runCommand('npm-install')">
-          📦 NPM Install
-        </button>
-        <button class="btn btn-success" onclick="runCommand('start-dev')" id="startBtn">
-          ▶️ Start Dev Server
-        </button>
-        <button class="btn btn-danger" onclick="runCommand('stop-dev')" id="stopBtn">
-          ⏹️ Stop Dev Server
-        </button>
-        <button class="btn btn-secondary" onclick="runCommand('build')">
-          🔨 Build
-        </button>
-        <button class="btn btn-info" onclick="runCommand('lint')">
-          🔍 Lint
-        </button>
+      <div class="controls" id="controlsContainer">
+        <!-- Buttons will be generated dynamically -->
       </div>
 
       <div class="output" id="output">
         <div class="output-line">Welcome to PAM Dev Panel! Click any button to run a command.</div>
       </div>
 
-      <div class="quick-links">
-        <a href="http://localhost:4000" target="_blank" class="quick-link">🌐 Open App (Port 4000)</a>
-        <a href="http://localhost:4000/login" target="_blank" class="quick-link">🔐 Login Page</a>
-        <a href="http://localhost:4000/dashboard" target="_blank" class="quick-link">📊 Dashboard</a>
+      <div class="quick-links" id="quickLinksContainer">
+        <!-- Quick links will be generated dynamically -->
       </div>
     </div>
   </div>
 
   <script>
     let currentRequest = null;
+    let appConfig = {};
+
+    // Load configuration on page load
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config');
+        appConfig = await response.json();
+
+        // Update page title and header
+        document.title = `${appConfig.projectName} - Dev Panel`;
+        document.getElementById('projectTitle').textContent = `${appConfig.projectIcon} ${appConfig.projectName}`;
+
+        // Set theme colors
+        document.documentElement.style.setProperty('--primary-color', appConfig.theme.primaryColor);
+        document.documentElement.style.setProperty('--secondary-color', appConfig.theme.secondaryColor);
+
+        // Generate buttons
+        generateButtons();
+
+        // Generate quick links
+        generateQuickLinks();
+      } catch (error) {
+        console.error('Failed to load config:', error);
+      }
+    }
+
+    function generateButtons() {
+      const container = document.getElementById('controlsContainer');
+      container.innerHTML = '';
+
+      Object.entries(appConfig.commands).forEach(([key, cmd]) => {
+        if (cmd.disabled) return;
+
+        const button = document.createElement('button');
+        button.className = `btn btn-${cmd.color}`;
+        button.innerHTML = `${cmd.icon} ${cmd.label}`;
+        button.id = key;
+
+        if (cmd.special) {
+          button.onclick = () => runCommand(cmd.special);
+        } else if (cmd.command) {
+          button.onclick = () => runCustomCommand(cmd.command, cmd.label);
+        }
+
+        container.appendChild(button);
+      });
+    }
+
+    function generateQuickLinks() {
+      const container = document.getElementById('quickLinksContainer');
+      container.innerHTML = '';
+
+      appConfig.quickLinks.forEach(link => {
+        const a = document.createElement('a');
+        a.href = link.url;
+        a.target = '_blank';
+        a.className = 'quick-link';
+        a.textContent = `${link.icon} ${link.label}`;
+        container.appendChild(a);
+      });
+    }
+
+    async function runCustomCommand(command, label) {
+      if (currentRequest) {
+        addOutput('⚠️ A command is already running. Please wait...', 'error');
+        return;
+      }
+
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Running...';
+
+      try {
+        currentRequest = true;
+        const response = await fetch('/api/run-command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const data = await response.json();
+
+        addOutput(`$ ${command}`, 'command');
+
+        if (data.success) {
+          addOutput(data.output, 'success');
+        } else {
+          addOutput(data.output, 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      } finally {
+        currentRequest = null;
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
 
     async function runCommand(endpoint) {
       if (currentRequest) {
@@ -340,9 +426,12 @@
       output.scrollTop = output.scrollHeight;
     }
 
-    // Check status every 5 seconds
-    setInterval(checkStatus, 5000);
-    checkStatus();
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadConfig();
+      checkStatus();
+      setInterval(checkStatus, 5000);
+    });
   </script>
 </body>
 </html>
