@@ -33,16 +33,29 @@ export default async function TransactionsPage() {
   // Check for pending staging
   const { data: stagingData } = await supabase
     .from('csv_uploads')
-    .select('id, filename, row_count')
+    .select('id, filename, row_count, duplicates_found')
     .eq('status', 'staged')
     .limit(1)
     .single()
+
+  // Fetch staging transactions if there's pending staging
+  let stagingTransactions = null
+  if (stagingData) {
+    const { data: stagingTxns } = await supabase
+      .from('staging_transactions')
+      .select('*')
+      .eq('upload_id', stagingData.id)
+      .order('row_number', { ascending: true })
+
+    stagingTransactions = stagingTxns
+  }
 
   return (
     <TransactionsClient
       uploads={uploads || []}
       transactions={transactions || []}
       pendingStaging={stagingData}
+      stagingTransactions={stagingTransactions || []}
     />
   )
 }

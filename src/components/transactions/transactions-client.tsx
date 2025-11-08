@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { CsvUpload } from "./csv-upload"
 import { UploadHistory } from "./upload-history"
+import { StagingReview } from "./staging-review"
 import { Button } from "@/components/ui/button"
 
 type Tab = "transactions" | "upload" | "history" | "staging"
@@ -11,9 +12,10 @@ interface TransactionsClientProps {
   uploads: any[]
   transactions: any[]
   pendingStaging: any
+  stagingTransactions: any[]
 }
 
-export function TransactionsClient({ uploads, transactions, pendingStaging }: TransactionsClientProps) {
+export function TransactionsClient({ uploads, transactions, pendingStaging, stagingTransactions }: TransactionsClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>(pendingStaging ? "staging" : "transactions")
 
   return (
@@ -142,14 +144,11 @@ export function TransactionsClient({ uploads, transactions, pendingStaging }: Tr
         {activeTab === "history" && <UploadHistory uploads={uploads} />}
 
         {activeTab === "staging" && pendingStaging && (
-          <div className="rounded-lg border bg-card p-12 text-center">
-            <div className="text-6xl mb-4">🔍</div>
-            <h2 className="text-2xl font-semibold mb-2">Review Staging Area</h2>
-            <p className="text-muted-foreground mb-6">
-              Staging area coming next! You'll review {pendingStaging.row_count} transactions from "{pendingStaging.filename}"
-            </p>
-            <Button onClick={() => setActiveTab("transactions")}>Back to Transactions</Button>
-          </div>
+          <StagingReview
+            upload={pendingStaging}
+            stagingTransactions={stagingTransactions}
+            onComplete={() => setActiveTab("transactions")}
+          />
         )}
       </div>
     </div>

@@ -357,6 +357,112 @@ export interface Database {
           updated_at?: string
         }
       }
+      csv_uploads: {
+        Row: {
+          id: string
+          user_id: string
+          account_id: string | null
+          filename: string
+          file_size: number
+          row_count: number | null
+          transactions_imported: number
+          duplicates_found: number
+          status: string
+          error_message: string | null
+          uploaded_at: string
+          imported_at: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          account_id?: string | null
+          filename: string
+          file_size: number
+          row_count?: number | null
+          transactions_imported?: number
+          duplicates_found?: number
+          status?: string
+          error_message?: string | null
+          uploaded_at?: string
+          imported_at?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          account_id?: string | null
+          filename?: string
+          file_size?: number
+          row_count?: number | null
+          transactions_imported?: number
+          duplicates_found?: number
+          status?: string
+          error_message?: string | null
+          uploaded_at?: string
+          imported_at?: string | null
+          metadata?: Json | null
+        }
+      }
+      staging_transactions: {
+        Row: {
+          id: string
+          upload_id: string
+          row_number: number
+          date: string
+          amount: number
+          payee: string
+          particulars: string | null
+          code: string | null
+          reference: string | null
+          transaction_type: string | null
+          is_duplicate: boolean
+          duplicate_of: string | null
+          duplicate_reason: string | null
+          suggested_category_id: string | null
+          suggested_account_id: string | null
+          will_import: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          upload_id: string
+          row_number: number
+          date: string
+          amount: number
+          payee: string
+          particulars?: string | null
+          code?: string | null
+          reference?: string | null
+          transaction_type?: string | null
+          is_duplicate?: boolean
+          duplicate_of?: string | null
+          duplicate_reason?: string | null
+          suggested_category_id?: string | null
+          suggested_account_id?: string | null
+          will_import?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          upload_id?: string
+          row_number?: number
+          date?: string
+          amount?: number
+          payee?: string
+          particulars?: string | null
+          code?: string | null
+          reference?: string | null
+          transaction_type?: string | null
+          is_duplicate?: boolean
+          duplicate_of?: string | null
+          duplicate_reason?: string | null
+          suggested_category_id?: string | null
+          suggested_account_id?: string | null
+          will_import?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
