@@ -248,6 +248,13 @@
         <!-- Buttons will be generated dynamically -->
       </div>
 
+      <div style="padding: 10px 20px; border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.9rem; font-weight: 600; color: #6c757d;">Console Output</span>
+        <button onclick="clearLog()" style="padding: 6px 12px; border: none; border-radius: 6px; background: #6c757d; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s ease;">
+          🗑️ Clear Log
+        </button>
+      </div>
+
       <div class="output" id="output">
         <div class="output-line">Welcome to PAM Dev Panel! Click any button to run a command.</div>
       </div>
@@ -424,6 +431,11 @@
       line.textContent = text;
       output.appendChild(line);
       output.scrollTop = output.scrollHeight;
+    }
+
+    function clearLog() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="output-line">Log cleared. Ready for new commands.</div>';
     }
 
     // Initialize on page load
