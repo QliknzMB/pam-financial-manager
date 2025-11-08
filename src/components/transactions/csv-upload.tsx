@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,12 +14,18 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 
-export function CsvUpload() {
+interface CsvUploadProps {
+  onUploadComplete?: () => void
+}
+
+export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+  const router = useRouter()
+  const supabase = createClient()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -48,25 +56,61 @@ export function CsvUpload() {
     setUploading(true)
 
     try {
-      // For now, just simulate upload
-      // We'll implement actual parsing and saving in the next step
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Create upload record
+      const { data: upload, error: uploadError } = await supabase
+        .from('csv_uploads')
+        .insert({
+          user_id: user.id,
+          filename: file.name,
+          file_size: file.size,
+          status: 'pending',
+        })
+        .select()
+        .single()
+
+      if (uploadError) throw uploadError
+
+      // Read and parse CSV (simple version for now)
+      const text = await file.text()
+      const lines = text.split('\n').filter(line => line.trim())
+      const rowCount = Math.max(0, lines.length - 1) // Subtract header row
+
+      // Update upload record with row count
+      await supabase
+        .from('csv_uploads')
+        .update({
+          row_count: rowCount,
+          status: 'staged'
+        })
+        .eq('id', upload.id)
 
       toast({
         title: "Upload successful!",
-        description: `${file.name} has been uploaded. (Parser coming soon)`,
+        description: `${file.name} staged with ${rowCount} transactions. Review before importing.`,
       })
 
-      // Reset
+      // Reset and close
       setFile(null)
       setOpen(false)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
-    } catch (error) {
+
+      // Refresh page to show staging
+      router.refresh()
+
+      // Call callback if provided
+      if (onUploadComplete) {
+        onUploadComplete()
+      }
+    } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your file.",
+        description: error.message || "There was an error uploading your file.",
         variant: "destructive",
       })
     } finally {

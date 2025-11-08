@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { CsvUpload } from "@/components/transactions/csv-upload"
+import { TransactionsClient } from "@/components/transactions/transactions-client"
 
 export default async function TransactionsPage() {
   const supabase = createClient()
@@ -12,21 +12,37 @@ export default async function TransactionsPage() {
     redirect("/login")
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Transactions</h1>
-        <p className="text-muted-foreground">View and manage your transactions</p>
-      </div>
+  // Fetch upload history
+  const { data: uploads } = await supabase
+    .from('csv_uploads')
+    .select('*')
+    .order('uploaded_at', { ascending: false })
+    .limit(10)
 
-      <div className="rounded-lg border bg-card p-12 text-center">
-        <div className="text-6xl mb-4">💳</div>
-        <h2 className="text-2xl font-semibold mb-2">No transactions yet</h2>
-        <p className="text-muted-foreground mb-6">
-          Upload a CSV file from your bank to get started
-        </p>
-        <CsvUpload />
-      </div>
-    </div>
+  // Fetch transactions
+  const { data: transactions } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      account:accounts(name),
+      category:categories(name)
+    `)
+    .order('date', { ascending: false })
+    .limit(50)
+
+  // Check for pending staging
+  const { data: stagingData } = await supabase
+    .from('csv_uploads')
+    .select('id, filename, row_count')
+    .eq('status', 'staged')
+    .limit(1)
+    .single()
+
+  return (
+    <TransactionsClient
+      uploads={uploads || []}
+      transactions={transactions || []}
+      pendingStaging={stagingData}
+    />
   )
 }
