@@ -56,41 +56,29 @@ export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
     setUploading(true)
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      // Create form data
+      const formData = new FormData()
+      formData.append('file', file)
 
-      // Create upload record
-      const { data: upload, error: uploadError } = await supabase
-        .from('csv_uploads')
-        .insert({
-          user_id: user.id,
-          filename: file.name,
-          file_size: file.size,
-          status: 'pending',
-        })
-        .select()
-        .single()
+      // Call API to parse and stage
+      const response = await fetch('/api/upload-csv', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (uploadError) throw uploadError
+      const data = await response.json()
 
-      // Read and parse CSV (simple version for now)
-      const text = await file.text()
-      const lines = text.split('\n').filter(line => line.trim())
-      const rowCount = Math.max(0, lines.length - 1) // Subtract header row
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed')
+      }
 
-      // Update upload record with row count
-      await supabase
-        .from('csv_uploads')
-        .update({
-          row_count: rowCount,
-          status: 'staged'
-        })
-        .eq('id', upload.id)
+      const newTransactions = data.stagedCount - data.duplicateCount
 
       toast({
         title: "Upload successful!",
-        description: `${file.name} staged with ${rowCount} transactions. Review before importing.`,
+        description: `${file.name}: ${newTransactions} new transactions staged${
+          data.duplicateCount > 0 ? `, ${data.duplicateCount} duplicates found` : ''
+        }. Review before importing.`,
       })
 
       // Reset and close
