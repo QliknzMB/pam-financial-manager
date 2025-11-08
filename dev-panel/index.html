@@ -231,6 +231,15 @@
     <div class="header">
       <h1 id="projectTitle">🚀 Dev Panel</h1>
       <p id="projectSubtitle">Development Control Center</p>
+      <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; align-items: center;">
+        <select id="projectSelector" onchange="switchProject()" style="padding: 10px 20px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.2); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px);">
+          <option>Loading projects...</option>
+        </select>
+        <button onclick="showAddProjectForm()" style="padding: 10px 20px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.2); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;">
+          ➕ Add Project
+        </button>
+      </div>
+      <p id="projectPath" style="margin-top: 10px; opacity: 0.8; font-size: 0.9rem;"></p>
     </div>
 
     <div class="panel">
@@ -265,6 +274,43 @@
     </div>
   </div>
 
+  <!-- Add Project Modal -->
+  <div id="addProjectModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+      <h2 style="margin: 0 0 20px 0;">Add New Project</h2>
+      <form id="addProjectForm" onsubmit="addProject(event)">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Project Name:</label>
+          <input type="text" id="newProjectName" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Project Path:</label>
+          <input type="text" id="newProjectPath" required placeholder="C:\Projects\my-project" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Icon (emoji):</label>
+          <input type="text" id="newProjectIcon" placeholder="📁" maxlength="2" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Dev Server Port:</label>
+          <input type="number" id="newProjectPort" placeholder="3000" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Dev Server Command:</label>
+          <input type="text" id="newProjectCommand" placeholder="npm run dev" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="hideAddProjectForm()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-weight: 600;">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 6px; font-weight: 600;">
+            Add Project
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     let currentRequest = null;
     let appConfig = {};
@@ -278,10 +324,14 @@
         // Update page title and header
         document.title = `${appConfig.projectName} - Dev Panel`;
         document.getElementById('projectTitle').textContent = `${appConfig.projectIcon} ${appConfig.projectName}`;
+        document.getElementById('projectPath').textContent = `📁 ${appConfig.activeProject.path}`;
 
         // Set theme colors
         document.documentElement.style.setProperty('--primary-color', appConfig.theme.primaryColor);
         document.documentElement.style.setProperty('--secondary-color', appConfig.theme.secondaryColor);
+
+        // Populate project selector
+        populateProjectSelector();
 
         // Generate buttons
         generateButtons();
@@ -291,6 +341,21 @@
       } catch (error) {
         console.error('Failed to load config:', error);
       }
+    }
+
+    function populateProjectSelector() {
+      const selector = document.getElementById('projectSelector');
+      selector.innerHTML = '';
+
+      appConfig.projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = `${project.icon} ${project.name}`;
+        if (project.active) {
+          option.selected = true;
+        }
+        selector.appendChild(option);
+      });
     }
 
     function generateButtons() {
@@ -436,6 +501,79 @@
     function clearLog() {
       const output = document.getElementById('output');
       output.innerHTML = '<div class="output-line">Log cleared. Ready for new commands.</div>';
+    }
+
+    async function switchProject() {
+      const selector = document.getElementById('projectSelector');
+      const projectId = selector.value;
+
+      try {
+        addOutput(`Switching to project: ${selector.options[selector.selectedIndex].text}`, 'command');
+
+        const response = await fetch('/api/set-active-project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          addOutput('✓ Project switched successfully! Reloading configuration...', 'success');
+          // Reload the page to get new config
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          addOutput('✗ Failed to switch project', 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    function showAddProjectForm() {
+      document.getElementById('addProjectModal').style.display = 'flex';
+    }
+
+    function hideAddProjectForm() {
+      document.getElementById('addProjectModal').style.display = 'none';
+      document.getElementById('addProjectForm').reset();
+    }
+
+    async function addProject(event) {
+      event.preventDefault();
+
+      const name = document.getElementById('newProjectName').value;
+      const path = document.getElementById('newProjectPath').value;
+      const icon = document.getElementById('newProjectIcon').value || '📁';
+      const devServerPort = document.getElementById('newProjectPort').value || 3000;
+      const devServerCommand = document.getElementById('newProjectCommand').value || 'npm run dev';
+
+      try {
+        const response = await fetch('/api/add-project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            path,
+            icon,
+            devServerPort: parseInt(devServerPort),
+            devServerCommand
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          addOutput(`✓ Project "${name}" added successfully!`, 'success');
+          hideAddProjectForm();
+          // Reload config to update selector
+          loadConfig();
+        } else {
+          addOutput(`✗ Failed to add project: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      }
     }
 
     // Initialize on page load
