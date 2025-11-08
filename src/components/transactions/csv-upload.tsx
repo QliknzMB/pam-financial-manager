@@ -1,0 +1,181 @@
+"use client"
+
+import { useState, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+
+export function CsvUpload() {
+  const [open, setOpen] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      // Check if it's a CSV file
+      if (!selectedFile.name.endsWith('.csv')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a CSV file.",
+          variant: "destructive",
+        })
+        return
+      }
+      setFile(selectedFile)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to upload.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploading(true)
+
+    try {
+      // For now, just simulate upload
+      // We'll implement actual parsing and saving in the next step
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      toast({
+        title: "Upload successful!",
+        description: `${file.name} has been uploaded. (Parser coming soon)`,
+      })
+
+      // Reset
+      setFile(null)
+      setOpen(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const droppedFile = e.dataTransfer.files[0]
+    if (droppedFile && droppedFile.name.endsWith('.csv')) {
+      setFile(droppedFile)
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please drop a CSV file.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="lg" className="text-lg px-8">
+          Upload CSV File
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Transactions</DialogTitle>
+          <DialogDescription>
+            Upload a CSV file from your bank to import transactions.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div
+            className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-slate-400 transition-colors cursor-pointer"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div className="space-y-2">
+              <div className="text-4xl">📄</div>
+              {file ? (
+                <>
+                  <p className="text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024).toFixed(2)} KB
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium">
+                    Click or drag file to upload
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    CSV files only
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-4 text-xs space-y-2">
+            <p className="font-semibold">Supported banks:</p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>BNZ</li>
+              <li>ANZ (coming soon)</li>
+              <li>ASB (coming soon)</li>
+              <li>Westpac (coming soon)</li>
+              <li>Kiwibank (coming soon)</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleUpload}
+              disabled={!file || uploading}
+              className="flex-1"
+            >
+              {uploading ? "Uploading..." : "Upload & Import"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFile(null)
+                setOpen(false)
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = ""
+                }
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

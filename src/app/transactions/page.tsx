@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { CsvUpload } from "@/components/transactions/csv-upload"
 
 export default async function TransactionsPage() {
   const supabase = createClient()
@@ -24,9 +25,7 @@ export default async function TransactionsPage() {
         <p className="text-muted-foreground mb-6">
           Upload a CSV file from your bank to get started
         </p>
-        <button className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-          Upload CSV File
-        </button>
+        <CsvUpload />
       </div>
     </div>
   )
