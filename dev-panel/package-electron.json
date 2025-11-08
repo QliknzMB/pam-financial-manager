@@ -1,11 +1,11 @@
 {
-  "name": "pam-dev-panel",
+  "name": "pam-dev-panel-app",
   "version": "1.0.0",
-  "description": "Development control panel for PAM",
+  "description": "PAM Dev Panel - Desktop App",
   "main": "electron-main.js",
   "scripts": {
-    "start": "node server.js",
-    "electron": "electron .",
+    "start": "electron .",
+    "build": "electron-builder",
     "build:win": "electron-builder --win"
   },
   "build": {
@@ -13,25 +13,24 @@
     "productName": "PAM Dev Panel",
     "win": {
       "target": "nsis",
-      "icon": "icon.png"
+      "icon": "icon.ico"
     },
     "files": [
       "electron-main.js",
       "index.html",
-      "server.js",
       "config.json",
-      "!dist/**/*",
+      "**/*.js",
       "!node_modules/**/*"
     ],
     "directories": {
       "output": "dist"
     }
   },
-  "dependencies": {
-    "express": "^4.18.2"
-  },
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
   }
 }
