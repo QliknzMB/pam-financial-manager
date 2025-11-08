@@ -1,0 +1,12 @@
+{
+  "name": "pam-dev-panel",
+  "version": "1.0.0",
+  "description": "Development control panel for PAM",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

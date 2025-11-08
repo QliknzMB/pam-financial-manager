@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAM Dev Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .status-bar {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #6c757d;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot.running {
+      background: #28a745;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .controls {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .output-line {
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+
+    .output-line.success {
+      color: #4ec9b0;
+    }
+
+    .output-line.error {
+      color: #f48771;
+    }
+
+    .output-line.command {
+      color: #569cd6;
+      font-weight: bold;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .quick-links {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .quick-link {
+      text-decoration: none;
+      color: #667eea;
+      font-weight: 600;
+      padding: 8px 15px;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .quick-link:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏃‍♀️💰 PAM Dev Panel</h1>
+      <p>Development Control Center</p>
+    </div>
+
+    <div class="panel">
+      <div class="status-bar">
+        <div class="status-indicator">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Dev Server: Stopped</span>
+        </div>
+        <button class="btn btn-secondary" onclick="checkStatus()" style="padding: 8px 15px; font-size: 0.9rem;">
+          🔄 Refresh Status
+        </button>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="runCommand('git-pull')">
+          📥 Git Pull
+        </button>
+        <button class="btn btn-info" onclick="runCommand('git-status')">
+          📊 Git Status
+        </button>
+        <button class="btn btn-secondary" onclick="runCommand('npm-install')">
+          📦 NPM Install
+        </button>
+        <button class="btn btn-success" onclick="runCommand('start-dev')" id="startBtn">
+          ▶️ Start Dev Server
+        </button>
+        <button class="btn btn-danger" onclick="runCommand('stop-dev')" id="stopBtn">
+          ⏹️ Stop Dev Server
+        </button>
+        <button class="btn btn-secondary" onclick="runCommand('build')">
+          🔨 Build
+        </button>
+        <button class="btn btn-info" onclick="runCommand('lint')">
+          🔍 Lint
+        </button>
+      </div>
+
+      <div class="output" id="output">
+        <div class="output-line">Welcome to PAM Dev Panel! Click any button to run a command.</div>
+      </div>
+
+      <div class="quick-links">
+        <a href="http://localhost:4000" target="_blank" class="quick-link">🌐 Open App (Port 4000)</a>
+        <a href="http://localhost:4000/login" target="_blank" class="quick-link">🔐 Login Page</a>
+        <a href="http://localhost:4000/dashboard" target="_blank" class="quick-link">📊 Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentRequest = null;
+
+    async function runCommand(endpoint) {
+      if (currentRequest) {
+        addOutput('⚠️ A command is already running. Please wait...', 'error');
+        return;
+      }
+
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Running...';
+
+      try {
+        currentRequest = true;
+        const response = await fetch(`/api/${endpoint}`);
+        const data = await response.json();
+
+        if (data.command) {
+          addOutput(`$ ${data.command}`, 'command');
+        }
+
+        if (data.success) {
+          addOutput(data.output, 'success');
+        } else {
+          addOutput(data.output, 'error');
+        }
+
+        // Update status after start/stop commands
+        if (endpoint === 'start-dev' || endpoint === 'stop-dev') {
+          setTimeout(checkStatus, 1000);
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      } finally {
+        currentRequest = null;
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function checkStatus() {
+      try {
+        const response = await fetch('/api/server-status');
+        const data = await response.json();
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        if (data.running) {
+          statusDot.classList.add('running');
+          statusText.textContent = `Dev Server: Running on port ${data.port}`;
+        } else {
+          statusDot.classList.remove('running');
+          statusText.textContent = 'Dev Server: Stopped';
+        }
+      } catch (error) {
+        console.error('Failed to check status:', error);
+      }
+    }
+
+    function addOutput(text, type = '') {
+      const output = document.getElementById('output');
+      const line = document.createElement('div');
+      line.className = `output-line ${type}`;
+      line.textContent = text;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    // Check status every 5 seconds
+    setInterval(checkStatus, 5000);
+    checkStatus();
+  </script>
+</body>
+</html>
