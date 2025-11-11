@@ -38,7 +38,8 @@ export async function DELETE(
     const { data: upload, error: uploadError } = await supabase
       .from("csv_uploads")
       .select("id")
-      .eq("id", stagingTxn.upload_id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq("id", (stagingTxn as any).upload_id)
       .eq("user_id", user.id)
       .single()
 
@@ -68,10 +69,12 @@ export async function DELETE(
     const { data: counts } = await supabase
       .from("staging_transactions")
       .select("id, is_duplicate")
-      .eq("upload_id", stagingTxn.upload_id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq("upload_id", (stagingTxn as any).upload_id)
 
     const newRowCount = counts?.length || 0
-    const newDuplicatesFound = counts?.filter(t => t.is_duplicate).length || 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDuplicatesFound = counts?.filter((t: any) => t.is_duplicate).length || 0
 
     await supabase
       .from("csv_uploads")
@@ -79,7 +82,8 @@ export async function DELETE(
         row_count: newRowCount,
         duplicates_found: newDuplicatesFound,
       })
-      .eq("id", stagingTxn.upload_id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq("id", (stagingTxn as any).upload_id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
