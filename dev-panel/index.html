@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAM Dev Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .status-bar {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #6c757d;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot.running {
+      background: #28a745;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .controls {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--primary-color, #667eea);
+      color: white;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .output-line {
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+
+    .output-line.success {
+      color: #4ec9b0;
+    }
+
+    .output-line.error {
+      color: #f48771;
+    }
+
+    .output-line.command {
+      color: #569cd6;
+      font-weight: bold;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .quick-links {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .quick-link {
+      text-decoration: none;
+      color: #667eea;
+      font-weight: 600;
+      padding: 8px 15px;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .quick-link:hover {
+      background: var(--primary-color, #667eea);
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .quick-link {
+      text-decoration: none;
+      color: var(--primary-color, #667eea);
+      font-weight: 600;
+      padding: 8px 15px;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 id="projectTitle">🚀 Dev Panel</h1>
+      <p id="projectSubtitle">Development Control Center</p>
+      <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; align-items: center;">
+        <select id="projectSelector" onchange="switchProject()" style="padding: 10px 20px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.2); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px);">
+          <option>Loading projects...</option>
+        </select>
+        <button onclick="showAddProjectForm()" style="padding: 10px 20px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.2); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;">
+          ➕ Add Project
+        </button>
+      </div>
+      <p id="projectPath" style="margin-top: 10px; opacity: 0.8; font-size: 0.9rem;"></p>
+    </div>
+
+    <div class="panel">
+      <div class="status-bar">
+        <div class="status-indicator">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Dev Server: Stopped</span>
+        </div>
+        <button class="btn btn-secondary" onclick="checkStatus()" style="padding: 8px 15px; font-size: 0.9rem;">
+          🔄 Refresh Status
+        </button>
+      </div>
+
+      <div class="controls" id="controlsContainer">
+        <!-- Buttons will be generated dynamically -->
+      </div>
+
+      <div style="padding: 10px 20px; border-top: 1px solid #e9ecef; border-bottom: 1px solid #e9ecef; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.9rem; font-weight: 600; color: #6c757d;">Console Output</span>
+        <button onclick="clearLog()" style="padding: 6px 12px; border: none; border-radius: 6px; background: #6c757d; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s ease;">
+          🗑️ Clear Log
+        </button>
+      </div>
+
+      <div class="output" id="output">
+        <div class="output-line">Welcome to PAM Dev Panel! Click any button to run a command.</div>
+      </div>
+
+      <div class="quick-links" id="quickLinksContainer">
+        <!-- Quick links will be generated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Project Modal -->
+  <div id="addProjectModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
+      <h2 style="margin: 0 0 20px 0;">Add New Project</h2>
+      <form id="addProjectForm" onsubmit="addProject(event)">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Project Name:</label>
+          <input type="text" id="newProjectName" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Project Path:</label>
+          <input type="text" id="newProjectPath" required placeholder="C:\Projects\my-project" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Icon (emoji):</label>
+          <input type="text" id="newProjectIcon" placeholder="📁" maxlength="2" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Dev Server Port:</label>
+          <input type="number" id="newProjectPort" placeholder="3000" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Dev Server Command:</label>
+          <input type="text" id="newProjectCommand" placeholder="npm run dev" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="hideAddProjectForm()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-weight: 600;">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 6px; font-weight: 600;">
+            Add Project
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentRequest = null;
+    let appConfig = {};
+
+    // Load configuration on page load
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config');
+        appConfig = await response.json();
+
+        // Update page title and header
+        document.title = `${appConfig.projectName} - Dev Panel`;
+        document.getElementById('projectTitle').textContent = `${appConfig.projectIcon} ${appConfig.projectName}`;
+        document.getElementById('projectPath').textContent = `📁 ${appConfig.activeProject.path}`;
+
+        // Set theme colors
+        document.documentElement.style.setProperty('--primary-color', appConfig.theme.primaryColor);
+        document.documentElement.style.setProperty('--secondary-color', appConfig.theme.secondaryColor);
+
+        // Populate project selector
+        populateProjectSelector();
+
+        // Generate buttons
+        generateButtons();
+
+        // Generate quick links
+        generateQuickLinks();
+      } catch (error) {
+        console.error('Failed to load config:', error);
+      }
+    }
+
+    function populateProjectSelector() {
+      const selector = document.getElementById('projectSelector');
+      selector.innerHTML = '';
+
+      appConfig.projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = `${project.icon} ${project.name}`;
+        if (project.active) {
+          option.selected = true;
+        }
+        selector.appendChild(option);
+      });
+    }
+
+    function generateButtons() {
+      const container = document.getElementById('controlsContainer');
+      container.innerHTML = '';
+
+      Object.entries(appConfig.commands).forEach(([key, cmd]) => {
+        if (cmd.disabled) return;
+
+        const button = document.createElement('button');
+        button.className = `btn btn-${cmd.color}`;
+        button.innerHTML = `${cmd.icon} ${cmd.label}`;
+        button.id = key;
+
+        if (cmd.special) {
+          button.onclick = () => runCommand(cmd.special);
+        } else if (cmd.command) {
+          button.onclick = () => runCustomCommand(cmd.command, cmd.label);
+        }
+
+        container.appendChild(button);
+      });
+    }
+
+    function generateQuickLinks() {
+      const container = document.getElementById('quickLinksContainer');
+      container.innerHTML = '';
+
+      appConfig.quickLinks.forEach(link => {
+        const a = document.createElement('a');
+        a.href = link.url;
+        a.target = '_blank';
+        a.className = 'quick-link';
+        a.textContent = `${link.icon} ${link.label}`;
+        container.appendChild(a);
+      });
+    }
+
+    async function runCustomCommand(command, label) {
+      if (currentRequest) {
+        addOutput('⚠️ A command is already running. Please wait...', 'error');
+        return;
+      }
+
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Running...';
+
+      try {
+        currentRequest = true;
+        const response = await fetch('/api/run-command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const data = await response.json();
+
+        addOutput(`$ ${command}`, 'command');
+
+        if (data.success) {
+          addOutput(data.output, 'success');
+        } else {
+          addOutput(data.output, 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      } finally {
+        currentRequest = null;
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function runCommand(endpoint) {
+      if (currentRequest) {
+        addOutput('⚠️ A command is already running. Please wait...', 'error');
+        return;
+      }
+
+      const btn = event.target;
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Running...';
+
+      try {
+        currentRequest = true;
+        const response = await fetch(`/api/${endpoint}`);
+        const data = await response.json();
+
+        if (data.command) {
+          addOutput(`$ ${data.command}`, 'command');
+        }
+
+        if (data.success) {
+          addOutput(data.output, 'success');
+        } else {
+          addOutput(data.output, 'error');
+        }
+
+        // Update status after start/stop commands
+        if (endpoint === 'start-dev' || endpoint === 'stop-dev') {
+          setTimeout(checkStatus, 1000);
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      } finally {
+        currentRequest = null;
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    async function checkStatus() {
+      try {
+        const response = await fetch('/api/server-status');
+        const data = await response.json();
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        if (data.running) {
+          statusDot.classList.add('running');
+          statusText.textContent = `Dev Server: Running on port ${data.port}`;
+        } else {
+          statusDot.classList.remove('running');
+          statusText.textContent = 'Dev Server: Stopped';
+        }
+      } catch (error) {
+        console.error('Failed to check status:', error);
+      }
+    }
+
+    function addOutput(text, type = '') {
+      const output = document.getElementById('output');
+      const line = document.createElement('div');
+      line.className = `output-line ${type}`;
+      line.textContent = text;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearLog() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="output-line">Log cleared. Ready for new commands.</div>';
+    }
+
+    async function switchProject() {
+      const selector = document.getElementById('projectSelector');
+      const projectId = selector.value;
+
+      try {
+        addOutput(`Switching to project: ${selector.options[selector.selectedIndex].text}`, 'command');
+
+        const response = await fetch('/api/set-active-project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          addOutput('✓ Project switched successfully! Reloading configuration...', 'success');
+          // Reload the page to get new config
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          addOutput('✗ Failed to switch project', 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    function showAddProjectForm() {
+      document.getElementById('addProjectModal').style.display = 'flex';
+    }
+
+    function hideAddProjectForm() {
+      document.getElementById('addProjectModal').style.display = 'none';
+      document.getElementById('addProjectForm').reset();
+    }
+
+    async function addProject(event) {
+      event.preventDefault();
+
+      const name = document.getElementById('newProjectName').value;
+      const path = document.getElementById('newProjectPath').value;
+      const icon = document.getElementById('newProjectIcon').value || '📁';
+      const devServerPort = document.getElementById('newProjectPort').value || 3000;
+      const devServerCommand = document.getElementById('newProjectCommand').value || 'npm run dev';
+
+      try {
+        const response = await fetch('/api/add-project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            path,
+            icon,
+            devServerPort: parseInt(devServerPort),
+            devServerCommand
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          addOutput(`✓ Project "${name}" added successfully!`, 'success');
+          hideAddProjectForm();
+          // Reload config to update selector
+          loadConfig();
+        } else {
+          addOutput(`✗ Failed to add project: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        addOutput(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadConfig();
+      checkStatus();
+      setInterval(checkStatus, 5000);
+    });
+  </script>
+</body>
+</html>

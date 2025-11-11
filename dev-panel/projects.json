@@ -1,0 +1,17 @@
+{
+  "projects": [
+    {
+      "id": "pam",
+      "name": "PAM Financial Manager",
+      "path": "C:\\Projects\\pam-financial-manager",
+      "icon": "🏃‍♀️💰",
+      "devServerPort": 4000,
+      "devServerCommand": "npm run dev",
+      "active": true
+    }
+  ],
+  "theme": {
+    "primaryColor": "#667eea",
+    "secondaryColor": "#764ba2"
+  }
+}
