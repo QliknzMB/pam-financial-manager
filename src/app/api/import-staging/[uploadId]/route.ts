@@ -120,11 +120,12 @@ export async function POST(
     // Update the upload record
     await supabase
       .from("csv_uploads")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update({
         status: "imported",
         transactions_imported: insertedTxns.length,
         imported_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", uploadId)
 
     // Delete staging transactions
