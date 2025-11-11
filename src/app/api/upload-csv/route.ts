@@ -49,8 +49,9 @@ export async function POST(request: NextRequest) {
     const rows = parseResult.data
 
     // Create upload record
-    const { data: upload, error: uploadError } = await supabase
-      .from('csv_uploads')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: upload, error: uploadError } = await (supabase
+      .from('csv_uploads') as any)
       .insert({
         user_id: user.id,
         filename: file.name,
@@ -133,15 +134,17 @@ export async function POST(request: NextRequest) {
 
     // Insert staging transactions
     if (stagingTransactions.length > 0) {
-      const { error: stagingError } = await supabase
-        .from('staging_transactions')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: stagingError } = await (supabase
+        .from('staging_transactions') as any)
         .insert(stagingTransactions)
 
       if (stagingError) {
         console.error('Staging insert error:', stagingError)
         // Update upload as failed
-        await supabase
-          .from('csv_uploads')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase
+          .from('csv_uploads') as any)
           .update({
             status: 'failed',
             error_message: stagingError.message
@@ -153,8 +156,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update upload record
-    await supabase
-      .from('csv_uploads')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase
+      .from('csv_uploads') as any)
       .update({
         status: 'staged',
         duplicates_found: duplicateCount,
