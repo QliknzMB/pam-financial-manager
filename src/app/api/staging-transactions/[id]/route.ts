@@ -76,8 +76,9 @@ export async function DELETE(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newDuplicatesFound = counts?.filter((t: any) => t.is_duplicate).length || 0
 
-    await supabase
-      .from("csv_uploads")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase
+      .from("csv_uploads") as any)
       .update({
         row_count: newRowCount,
         duplicates_found: newDuplicatesFound,
