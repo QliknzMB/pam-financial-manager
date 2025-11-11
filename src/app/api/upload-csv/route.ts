@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
         txn.payee.toLowerCase() === row.Payee.toLowerCase()
       )
 
-      const duplicateOf = isDuplicate
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const duplicateOf: any = isDuplicate
         ? existingTransactions?.find((txn: any) =>
             txn.date === date &&
             Math.abs(parseFloat(txn.amount.toString()) - amount) < 0.01 &&
