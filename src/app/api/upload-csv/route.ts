@@ -98,14 +98,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Check for duplicates
-      const isDuplicate = existingTransactions?.some(txn =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isDuplicate = existingTransactions?.some((txn: any) =>
         txn.date === date &&
         Math.abs(parseFloat(txn.amount.toString()) - amount) < 0.01 &&
         txn.payee.toLowerCase() === row.Payee.toLowerCase()
       )
 
       const duplicateOf = isDuplicate
-        ? existingTransactions?.find(txn =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? existingTransactions?.find((txn: any) =>
             txn.date === date &&
             Math.abs(parseFloat(txn.amount.toString()) - amount) < 0.01 &&
             txn.payee.toLowerCase() === row.Payee.toLowerCase()
