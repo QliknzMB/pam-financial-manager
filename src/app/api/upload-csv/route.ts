@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('user_id', user.id)
 
-    const accountIds = accounts?.map(a => a.id) || []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const accountIds = accounts?.map((a: any) => a.id) || []
 
     // Get existing transactions for duplicate checking
     const { data: existingTransactions } = await supabase
