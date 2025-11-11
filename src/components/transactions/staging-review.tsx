@@ -256,7 +256,7 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
           <div>
             <div className="font-semibold text-blue-900">Review Before Import</div>
             <p className="text-sm text-blue-700 mt-1">
-              Duplicates are automatically detected and won't be imported. You can delete any
+              Duplicates are automatically detected and won&apos;t be imported. You can delete any
               unwanted transactions before importing.
             </p>
           </div>

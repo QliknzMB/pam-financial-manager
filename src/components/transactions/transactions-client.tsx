@@ -135,7 +135,7 @@ export function TransactionsClient({ uploads, transactions, pendingStaging, stag
             <div className="text-6xl mb-4">📤</div>
             <h2 className="text-2xl font-semibold mb-2">Upload Transactions</h2>
             <p className="text-muted-foreground mb-6">
-              Upload a CSV file from your bank. We'll check for duplicates before importing.
+              Upload a CSV file from your bank. We&apos;ll check for duplicates before importing.
             </p>
             <CsvUpload onUploadComplete={() => setActiveTab("staging")} />
           </div>

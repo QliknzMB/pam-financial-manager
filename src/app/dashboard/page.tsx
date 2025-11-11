@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {user.user_metadata?.full_name || user.email}!</h1>
-        <p className="text-muted-foreground">Here's your financial overview</p>
+        <p className="text-muted-foreground">Here&apos;s your financial overview</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -29,13 +29,13 @@ export default async function DashboardPage() {
         </div>
 
         <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground">This Month's Income</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">This Month&apos;s Income</h3>
           <p className="text-3xl font-bold mt-2 text-green-600">$0.00</p>
           <p className="text-xs text-muted-foreground mt-2">No transactions yet</p>
         </div>
 
         <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground">This Month's Expenses</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">This Month&apos;s Expenses</h3>
           <p className="text-3xl font-bold mt-2 text-red-600">$0.00</p>
           <p className="text-xs text-muted-foreground mt-2">No transactions yet</p>
         </div>
