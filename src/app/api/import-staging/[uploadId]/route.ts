@@ -105,7 +105,8 @@ export async function POST(
 
     const { data: insertedTxns, error: insertError } = await supabase
       .from("transactions")
-      .insert(transactionsToInsert)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(transactionsToInsert as any)
       .select()
 
     if (insertError) {
