@@ -40,7 +40,7 @@ export default async function TransactionsPage() {
     .single()
 
   // Fetch staging transactions if there's pending staging (in batches for unlimited size)
-  let stagingTransactions: any[] = []
+  const stagingTransactions: any[] = []
   if (stagingData) {
     // Get count first
     const { count } = await supabase
