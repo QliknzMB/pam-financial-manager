@@ -39,16 +39,31 @@ export default async function TransactionsPage() {
     .limit(1)
     .single()
 
-  // Fetch staging transactions if there's pending staging
-  let stagingTransactions = null
+  // Fetch staging transactions if there's pending staging (in batches for unlimited size)
+  let stagingTransactions: any[] = []
   if (stagingData) {
-    const { data: stagingTxns } = await supabase
+    // Get count first
+    const { count } = await supabase
       .from('staging_transactions')
-      .select('*')
+      .select('*', { count: 'exact', head: true })
       .eq('upload_id', stagingData.id)
-      .order('row_number', { ascending: true })
 
-    stagingTransactions = stagingTxns
+    if (count && count > 0) {
+      const BATCH_SIZE = 1000
+
+      for (let offset = 0; offset < count; offset += BATCH_SIZE) {
+        const { data: batch } = await supabase
+          .from('staging_transactions')
+          .select('*')
+          .eq('upload_id', stagingData.id)
+          .order('row_number', { ascending: true })
+          .range(offset, offset + BATCH_SIZE - 1)
+
+        if (batch) {
+          stagingTransactions.push(...batch)
+        }
+      }
+    }
   }
 
   return (
