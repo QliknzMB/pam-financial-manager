@@ -72,22 +72,39 @@ export async function POST(
 
     if (!accountId) {
       // Get user's first account
-      const { data: accounts, error: accountError } = await supabase
+      const { data: accounts } = await supabase
         .from("accounts")
         .select("id")
         .eq("user_id", user.id)
         .limit(1)
         .single()
 
-      if (accountError || !accounts) {
-        return NextResponse.json(
-          { error: "No account found. Please create an account first." },
-          { status: 400 }
-        )
-      }
+      if (accounts) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        accountId = (accounts as any).id
+      } else {
+        // No account exists, create a default one
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: newAccount, error: createError } = await (supabase
+          .from("accounts") as any)
+          .insert({
+            user_id: user.id,
+            name: "Main Account",
+            account_type: "checking",
+            currency: "NZD",
+          })
+          .select()
+          .single()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      accountId = (accounts as any).id
+        if (createError || !newAccount) {
+          return NextResponse.json(
+            { error: "Failed to create default account" },
+            { status: 500 }
+          )
+        }
+
+        accountId = newAccount.id
+      }
     }
 
     // Insert transactions
