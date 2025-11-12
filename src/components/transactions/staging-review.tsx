@@ -48,6 +48,8 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
   const [deleting, setDeleting] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleteUploadConfirm, setDeleteUploadConfirm] = useState(false)
+  const [deletingUpload, setDeletingUpload] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -115,6 +117,39 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
     }
   }
 
+  const handleDeleteUpload = async () => {
+    setDeletingUpload(true)
+    try {
+      const response = await fetch(`/api/csv-uploads/${upload.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete upload')
+      }
+
+      toast({
+        title: "Upload deleted",
+        description: "The CSV upload and all staged transactions have been removed.",
+      })
+
+      router.refresh()
+      if (onComplete) {
+        onComplete()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingUpload(false)
+      setDeleteUploadConfirm(false)
+    }
+  }
+
   const toImportCount = transactions.filter(t => t.will_import && !t.is_duplicate).length
   const duplicateCount = transactions.filter(t => t.is_duplicate).length
 
@@ -142,14 +177,25 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
               </span>
             </div>
           </div>
-          <Button
-            onClick={handleImport}
-            disabled={importing || toImportCount === 0}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {importing ? "Importing..." : `Import ${toImportCount} Transactions`}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setDeleteUploadConfirm(true)}
+              disabled={deletingUpload}
+              size="lg"
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+            >
+              {deletingUpload ? "Deleting..." : "Delete Upload"}
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={importing || toImportCount === 0}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {importing ? "Importing..." : `Import ${toImportCount} Transactions`}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -263,7 +309,7 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Transaction Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -279,6 +325,28 @@ export function StagingReview({ upload, stagingTransactions, onComplete }: Stagi
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Upload Confirmation Dialog */}
+      <AlertDialog open={deleteUploadConfirm} onOpenChange={setDeleteUploadConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete entire upload?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the CSV upload and all {transactions.length} staged transactions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUpload}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Upload
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
