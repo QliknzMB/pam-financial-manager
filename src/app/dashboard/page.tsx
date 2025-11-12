@@ -22,7 +22,8 @@ export default async function DashboardPage() {
 
   // Calculate total balance and fetch recent transactions if accounts exist
   let totalBalance = 0
-  let recentTransactions = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let recentTransactions: any[] = []
 
   if (accounts && accounts.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
