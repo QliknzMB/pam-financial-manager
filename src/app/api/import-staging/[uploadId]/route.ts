@@ -60,7 +60,8 @@ export async function POST(
 
     // Fetch all staging transactions in batches to avoid Supabase limits
     const BATCH_SIZE = 1000
-    const stagingTxns = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stagingTxns: any[] = []
 
     for (let offset = 0; offset < count; offset += BATCH_SIZE) {
       const { data: batch, error: fetchError } = await supabase
