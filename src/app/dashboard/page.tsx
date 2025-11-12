@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -13,61 +14,40 @@ export default async function DashboardPage() {
 
   const user = session.user
 
+  // Fetch user's accounts with transaction counts
+  const { data: accounts } = await supabase
+    .from('accounts')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  // Calculate total balance and fetch recent transactions if accounts exist
+  let totalBalance = 0
+  let recentTransactions = []
+
+  if (accounts && accounts.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    totalBalance = accounts.reduce((sum: number, account: any) => sum + (account.current_balance || 0), 0)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const accountIds = accounts.map((a: any) => a.id)
+
+    // Fetch recent 5 transactions
+    const { data: txns } = await supabase
+      .from('transactions')
+      .select('*')
+      .in('account_id', accountIds)
+      .order('date', { ascending: false })
+      .limit(5)
+
+    recentTransactions = txns || []
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user.user_metadata?.full_name || user.email}!</h1>
-        <p className="text-muted-foreground">Here&apos;s your financial overview</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Summary cards will go here */}
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground">Total Balance</h3>
-          <p className="text-3xl font-bold mt-2">$0.00</p>
-          <p className="text-xs text-muted-foreground mt-2">No accounts yet</p>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground">This Month&apos;s Income</h3>
-          <p className="text-3xl font-bold mt-2 text-green-600">$0.00</p>
-          <p className="text-xs text-muted-foreground mt-2">No transactions yet</p>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground">This Month&apos;s Expenses</h3>
-          <p className="text-3xl font-bold mt-2 text-red-600">$0.00</p>
-          <p className="text-xs text-muted-foreground mt-2">No transactions yet</p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No transactions yet</p>
-            <p className="text-sm mt-2">Upload a CSV file to get started</p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-2">
-            <button className="w-full text-left p-3 rounded-md hover:bg-accent transition-colors">
-              📤 Upload Transactions
-            </button>
-            <button className="w-full text-left p-3 rounded-md hover:bg-accent transition-colors">
-              💰 Add Account
-            </button>
-            <button className="w-full text-left p-3 rounded-md hover:bg-accent transition-colors">
-              📊 View Reports
-            </button>
-            <button className="w-full text-left p-3 rounded-md hover:bg-accent transition-colors">
-              🎯 Set Budget
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <DashboardClient
+      user={user}
+      accounts={accounts || []}
+      totalBalance={totalBalance}
+      recentTransactions={recentTransactions}
+    />
   )
 }
