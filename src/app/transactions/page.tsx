@@ -16,7 +16,7 @@ export default async function TransactionsPage() {
   const { data: uploads } = await supabase
     .from('csv_uploads')
     .select('*')
-    .order('uploaded_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(10)
 
   // Fetch transactions

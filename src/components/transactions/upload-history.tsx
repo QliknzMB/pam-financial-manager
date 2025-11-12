@@ -1,5 +1,20 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 interface Upload {
   id: string
   filename: string
@@ -8,7 +23,7 @@ interface Upload {
   transactions_imported: number
   duplicates_found: number
   status: string
-  uploaded_at: string
+  created_at: string
   imported_at: string | null
   error_message: string | null
 }
@@ -18,6 +33,40 @@ interface UploadHistoryProps {
 }
 
 export function UploadHistory({ uploads }: UploadHistoryProps) {
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const { toast } = useToast()
+  const router = useRouter()
+
+  const handleDelete = async (uploadId: string) => {
+    setDeleting(uploadId)
+    try {
+      const response = await fetch(`/api/csv-uploads/${uploadId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete upload')
+      }
+
+      toast({
+        title: "Upload deleted",
+        description: "The upload record has been removed.",
+      })
+
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(null)
+      setDeleteConfirmId(null)
+    }
+  }
   if (uploads.length === 0) {
     return (
       <div className="rounded-lg border bg-card p-12 text-center">
@@ -94,15 +143,26 @@ export function UploadHistory({ uploads }: UploadHistoryProps) {
                   </div>
                 </div>
 
-                <div className="text-right text-sm text-muted-foreground">
-                  <div>Uploaded</div>
-                  <div>{new Date(upload.uploaded_at).toLocaleString()}</div>
-                  {upload.imported_at && (
-                    <>
-                      <div className="mt-2">Imported</div>
-                      <div>{new Date(upload.imported_at).toLocaleString()}</div>
-                    </>
-                  )}
+                <div className="flex items-center gap-4">
+                  <div className="text-right text-sm text-muted-foreground">
+                    <div>Uploaded</div>
+                    <div>{new Date(upload.created_at).toLocaleString()}</div>
+                    {upload.imported_at && (
+                      <>
+                        <div className="mt-2">Imported</div>
+                        <div>{new Date(upload.imported_at).toLocaleString()}</div>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteConfirmId(upload.id)}
+                    disabled={deleting === upload.id}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    {deleting === upload.id ? "..." : "🗑️"}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -114,14 +174,36 @@ export function UploadHistory({ uploads }: UploadHistoryProps) {
         <div className="flex gap-3">
           <div className="text-2xl">💡</div>
           <div>
-            <div className="font-semibold text-blue-900">Duplicate Protection</div>
+            <div className="font-semibold text-blue-900">Upload History</div>
             <p className="text-sm text-blue-700 mt-1">
-              PAM automatically detects duplicate transactions based on date, amount, and payee.
-              Duplicates are flagged during the staging review before import.
+              This shows all your CSV uploads. Deleting an upload record will not delete the
+              transactions that were already imported.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete upload record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the upload record from your history. If this upload has already
+              been imported, the transactions will remain in your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
