@@ -48,10 +48,11 @@ export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
   const loadAccounts = async () => {
     setLoadingAccounts(true)
     try {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase
         .from('accounts')
         .select('id, name, account_type, current_balance')
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }) as any)
 
       if (error) throw error
 
