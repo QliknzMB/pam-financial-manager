@@ -31,9 +31,26 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const accountId = formData.get('account_id') as string
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    if (!accountId) {
+      return NextResponse.json({ error: 'Account ID is required' }, { status: 400 })
+    }
+
+    // Verify the account exists and belongs to the user
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (accountError || !account) {
+      return NextResponse.json({ error: 'Invalid account' }, { status: 400 })
     }
 
     // Read file content
@@ -62,6 +79,7 @@ export async function POST(request: NextRequest) {
       .from('csv_uploads') as any)
       .insert({
         user_id: user.id,
+        account_id: accountId,
         filename: file.name,
         file_size: file.size,
         row_count: rows.length,
@@ -75,20 +93,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    // Get user's accounts to check against
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', user.id)
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const accountIds = accounts?.map((a: any) => a.id) || []
-
     // Get existing transaction hashes for duplicate checking (in batches to handle unlimited transactions)
+    // Only check for duplicates within the same account
     const { count: existingCount } = await supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
-      .in('account_id', accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'])
+      .eq('account_id', accountId)
 
     // Fetch all existing transactions in batches
     const FETCH_BATCH_SIZE = 1000
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest) {
         const { data: batch } = await supabase
           .from('transactions')
           .select('id, transaction_hash')
-          .in('account_id', accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'])
+          .eq('account_id', accountId)
           .range(offset, offset + FETCH_BATCH_SIZE - 1)
 
         if (batch) {

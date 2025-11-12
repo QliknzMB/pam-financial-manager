@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -12,20 +12,82 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 
 interface CsvUploadProps {
   onUploadComplete?: () => void
 }
 
+interface Account {
+  id: string
+  name: string
+  account_type: string
+  current_balance: number
+}
+
 export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("")
+  const [loadingAccounts, setLoadingAccounts] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const router = useRouter()
   const supabase = createClient()
+
+  // Load accounts when dialog opens
+  useEffect(() => {
+    if (open && accounts.length === 0) {
+      loadAccounts()
+    }
+  }, [open])
+
+  const loadAccounts = async () => {
+    setLoadingAccounts(true)
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, name, account_type, current_balance')
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      setAccounts(data || [])
+
+      // Auto-select first account if only one exists
+      if (data && data.length === 1) {
+        setSelectedAccountId(data[0].id)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error loading accounts",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingAccounts(false)
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NZ', {
+      style: 'currency',
+      currency: 'NZD',
+    }).format(amount)
+  }
+
+  const getAccountTypeLabel = (type: string) => {
+    const types: { [key: string]: string } = {
+      checking: "Checking",
+      savings: "Savings",
+      credit_card: "Credit Card",
+      bucket: "Bucket",
+    }
+    return types[type] || type
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -53,12 +115,22 @@ export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
       return
     }
 
+    if (!selectedAccountId) {
+      toast({
+        title: "No account selected",
+        description: "Please select an account to upload transactions to.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setUploading(true)
 
     try {
       // Create form data
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('account_id', selectedAccountId)
 
       // Call API to parse and stage
       const response = await fetch('/api/upload-csv', {
@@ -174,6 +246,48 @@ export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
             </div>
           </div>
 
+          {/* Account Selection */}
+          {loadingAccounts ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Loading accounts...
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-4">
+              <p className="text-sm text-yellow-900 font-medium mb-2">
+                No accounts found
+              </p>
+              <p className="text-xs text-yellow-800 mb-3">
+                You need to create an account before uploading transactions.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setOpen(false)
+                  router.push('/accounts')
+                }}
+              >
+                Create Account
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="account-select">Upload to Account *</Label>
+              <select
+                id="account-select"
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+              >
+                <option value="">-- Select Account --</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({getAccountTypeLabel(account.account_type)}) - {formatCurrency(account.current_balance)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="bg-slate-50 rounded-lg p-4 text-xs space-y-2">
             <p className="font-semibold">Supported banks:</p>
             <ul className="list-disc list-inside text-muted-foreground space-y-1">
@@ -188,7 +302,7 @@ export function CsvUpload({ onUploadComplete }: CsvUploadProps = {}) {
           <div className="flex gap-2">
             <Button
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={!file || !selectedAccountId || uploading || accounts.length === 0}
               className="flex-1"
             >
               {uploading ? "Uploading..." : "Upload & Import"}

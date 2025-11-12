@@ -85,45 +85,30 @@ export async function POST(
       }
     }
 
-    // Determine account_id (from upload or user's first account)
+    // Get account_id from upload
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let accountId = (upload as any).account_id
+    const accountId = (upload as any).account_id
 
     if (!accountId) {
-      // Get user's first account
-      const { data: accounts } = await supabase
-        .from("accounts")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .single()
+      return NextResponse.json(
+        { error: "No account associated with this upload" },
+        { status: 400 }
+      )
+    }
 
-      if (accounts) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        accountId = (accounts as any).id
-      } else {
-        // No account exists, create a default one
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: newAccount, error: createError } = await (supabase
-          .from("accounts") as any)
-          .insert({
-            user_id: user.id,
-            name: "Main Account",
-            account_type: "checking",
-          })
-          .select()
-          .single()
+    // Verify the account still exists and belongs to the user
+    const { data: account, error: accountError } = await supabase
+      .from("accounts")
+      .select("id")
+      .eq("id", accountId)
+      .eq("user_id", user.id)
+      .single()
 
-        if (createError || !newAccount) {
-          console.error("Error creating default account:", createError)
-          return NextResponse.json(
-            { error: "Failed to create default account" },
-            { status: 500 }
-          )
-        }
-
-        accountId = newAccount.id
-      }
+    if (accountError || !account) {
+      return NextResponse.json(
+        { error: "Invalid account" },
+        { status: 400 }
+      )
     }
 
     // Insert transactions in batches
