@@ -91,12 +91,12 @@ export async function POST(
             user_id: user.id,
             name: "Main Account",
             account_type: "checking",
-            currency: "NZD",
           })
           .select()
           .single()
 
         if (createError || !newAccount) {
+          console.error("Error creating default account:", createError)
           return NextResponse.json(
             { error: "Failed to create default account" },
             { status: 500 }
