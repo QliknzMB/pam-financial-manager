@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
     // Read file content
     const text = await file.text()
 
-    // Parse CSV
+    // Parse CSV/TSV (tab-separated values)
     const parseResult = Papa.parse<BNZTransaction>(text, {
       header: true,
       skipEmptyLines: true,
+      delimiter: text.includes('\t') ? '\t' : ',', // Auto-detect tab or comma
       transformHeader: (header) => header.trim(),
     })
 
@@ -191,23 +192,34 @@ function parseDate(dateString: string): string | null {
   if (!dateString) return null
 
   try {
-    // Try BNZ format: DD/MM/YYYY
-    const parts = dateString.split('/')
+    // Clean the input
+    const cleaned = dateString.trim()
+
+    // Try BNZ format: D/M/YYYY or DD/MM/YYYY
+    const parts = cleaned.split('/')
     if (parts.length === 3) {
-      const [day, month, year] = parts
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0] // Return YYYY-MM-DD
+      const day = parseInt(parts[0].trim(), 10)
+      const month = parseInt(parts[1].trim(), 10)
+      let year = parseInt(parts[2].trim(), 10)
+
+      // Handle 2-digit years: 24 -> 2024, 99 -> 1999
+      if (year < 100) {
+        year = year >= 50 ? 1900 + year : 2000 + year
+      }
+
+      // Validate ranges
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2100) {
+        // Create date string directly to avoid timezone issues
+        const isoDate = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+        const date = new Date(isoDate)
+
+        if (!isNaN(date.getTime())) {
+          return isoDate
+        }
       }
     }
-
-    // Fallback to ISO format
-    const date = new Date(dateString)
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0]
-    }
   } catch (e) {
-    console.error('Date parse error:', e)
+    console.error('Date parse error:', e, 'Input:', dateString)
   }
 
   return null
