@@ -84,15 +84,34 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accountIds = accounts?.map((a: any) => a.id) || []
 
-    // Get existing transaction hashes for duplicate checking
-    const { data: existingTransactions } = await supabase
+    // Get existing transaction hashes for duplicate checking (in batches to handle unlimited transactions)
+    const { count: existingCount } = await supabase
       .from('transactions')
-      .select('id, transaction_hash')
+      .select('*', { count: 'exact', head: true })
       .in('account_id', accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'])
 
-    // Create a Set of existing hashes for fast lookup
+    // Fetch all existing transactions in batches
+    const FETCH_BATCH_SIZE = 1000
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existingHashes = new Map(existingTransactions?.map((t: any) => [t.transaction_hash, t.id]) || [])
+    const existingTransactions: any[] = []
+
+    if (existingCount && existingCount > 0) {
+      for (let offset = 0; offset < existingCount; offset += FETCH_BATCH_SIZE) {
+        const { data: batch } = await supabase
+          .from('transactions')
+          .select('id, transaction_hash')
+          .in('account_id', accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'])
+          .range(offset, offset + FETCH_BATCH_SIZE - 1)
+
+        if (batch) {
+          existingTransactions.push(...batch)
+        }
+      }
+    }
+
+    // Create a Map of existing hashes for fast lookup
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingHashes = new Map(existingTransactions.map((t: any) => [t.transaction_hash, t.id]))
 
     // Parse and stage transactions
     const stagingTransactions = []
