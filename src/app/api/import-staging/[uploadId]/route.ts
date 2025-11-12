@@ -44,12 +44,14 @@ export async function POST(
     }
 
     // Get all staging transactions that will be imported (not duplicates)
+    // Note: Supabase has a default 1000 row limit, so we need to fetch all rows
     const { data: stagingTxns, error: fetchError } = await supabase
       .from("staging_transactions")
       .select("*")
       .eq("upload_id", uploadId)
       .eq("will_import", true)
       .eq("is_duplicate", false)
+      .limit(10000) // Set high limit to handle large imports
 
     if (fetchError) {
       console.error("Error fetching staging transactions:", fetchError)

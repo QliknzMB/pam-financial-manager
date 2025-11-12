@@ -47,6 +47,7 @@ export default async function TransactionsPage() {
       .select('*')
       .eq('upload_id', stagingData.id)
       .order('row_number', { ascending: true })
+      .limit(10000) // Handle large CSV uploads
 
     stagingTransactions = stagingTxns
   }
