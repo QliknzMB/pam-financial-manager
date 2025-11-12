@@ -117,6 +117,7 @@ export async function POST(
       code: txn.code || null,
       reference: txn.reference || null,
       transaction_type: txn.transaction_type || null,
+      transaction_hash: txn.transaction_hash,
       category_id: txn.suggested_category_id || null,
     }))
 

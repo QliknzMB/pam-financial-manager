@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import Papa from 'papaparse'
+import crypto from 'crypto'
 
 interface BNZTransaction {
   Date: string
@@ -10,6 +11,12 @@ interface BNZTransaction {
   Code?: string
   Reference?: string
   'Transaction Type'?: string
+}
+
+// Generate transaction hash for duplicate detection
+function generateTransactionHash(date: string, amount: number, payee: string): string {
+  const hashString = `${date}|${amount}|${payee.toLowerCase().trim()}`
+  return crypto.createHash('md5').update(hashString).digest('hex')
 }
 
 export async function POST(request: NextRequest) {
@@ -76,11 +83,15 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const accountIds = accounts?.map((a: any) => a.id) || []
 
-    // Get existing transactions for duplicate checking
+    // Get existing transaction hashes for duplicate checking
     const { data: existingTransactions } = await supabase
       .from('transactions')
-      .select('id, date, amount, payee, account_id')
+      .select('id, transaction_hash')
       .in('account_id', accountIds.length > 0 ? accountIds : ['00000000-0000-0000-0000-000000000000'])
+
+    // Create a Set of existing hashes for fast lookup
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingHashes = new Map(existingTransactions?.map((t: any) => [t.transaction_hash, t.id]) || [])
 
     // Parse and stage transactions
     const stagingTransactions = []
@@ -92,27 +103,18 @@ export async function POST(request: NextRequest) {
       // Parse BNZ format
       const amount = parseFloat(row.Amount?.replace(/[,$]/g, '') || '0')
       const date = parseDate(row.Date)
+      const payee = row.Payee || 'Unknown'
 
       if (!date || isNaN(amount)) {
         continue // Skip invalid rows
       }
 
-      // Check for duplicates
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const isDuplicate = existingTransactions?.some((txn: any) =>
-        txn.date === date &&
-        Math.abs(parseFloat(txn.amount.toString()) - amount) < 0.01 &&
-        txn.payee.toLowerCase() === row.Payee.toLowerCase()
-      )
+      // Generate transaction hash
+      const transactionHash = generateTransactionHash(date, amount, payee)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const duplicateOf: any = isDuplicate
-        ? existingTransactions?.find((txn: any) =>
-            txn.date === date &&
-            Math.abs(parseFloat(txn.amount.toString()) - amount) < 0.01 &&
-            txn.payee.toLowerCase() === row.Payee.toLowerCase()
-          )
-        : null
+      // Check for duplicates using hash
+      const isDuplicate = existingHashes.has(transactionHash)
+      const duplicateOf = isDuplicate ? existingHashes.get(transactionHash) : null
 
       if (isDuplicate) {
         duplicateCount++
@@ -123,14 +125,15 @@ export async function POST(request: NextRequest) {
         row_number: i + 1,
         date,
         amount,
-        payee: row.Payee || 'Unknown',
+        payee,
         particulars: row.Particulars,
         code: row.Code,
         reference: row.Reference,
         transaction_type: row['Transaction Type'],
+        transaction_hash: transactionHash,
         is_duplicate: isDuplicate,
-        duplicate_of: duplicateOf?.id || null,
-        duplicate_reason: isDuplicate ? 'Exact match: date, amount, and payee' : null,
+        duplicate_of: duplicateOf,
+        duplicate_reason: isDuplicate ? 'Duplicate transaction detected' : null,
         will_import: !isDuplicate,
       })
     }
