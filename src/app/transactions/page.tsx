@@ -31,7 +31,8 @@ export default async function TransactionsPage() {
     .limit(50)
 
   // Check for pending staging
-  const { data: stagingData } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: stagingData }: any = await supabase
     .from('csv_uploads')
     .select('id, filename, row_count, duplicates_found')
     .eq('status', 'staged')
