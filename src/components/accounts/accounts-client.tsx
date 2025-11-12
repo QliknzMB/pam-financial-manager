@@ -59,7 +59,8 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
-      const { error } = await supabase.from("accounts").insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("accounts") as any).insert({
         user_id: user.id,
         name: formData.name,
         account_type: formData.account_type,
